@@ -5,7 +5,7 @@ const superagent = require('superagent');
 let INVITE = process.env.INVITE || "https://discord.gg/Yv4CAav",
     GUILD = process.env.GUILD || "480885532658761728",
     OWNER = process.env.OWNER || "449313863494664214",
-    TOKEN = process.env.TOKEN || "NDYyNzUyNzM0MTQwMDM5MTY4.Dm2Kzg.eJb2NvYjNY5EQnqWC678qT2OxD8",
+    TOKEN = process.env.TOKEN || "NDg0MDk0NjQ2NjYyODU2NzM0.Dm2a-w.0-1LGgZ4AOpA9itzgkDXTe7aFA0",
     ONLYADVERT = process.env.ONLYADVERT || false;
 
 
@@ -25,7 +25,7 @@ let cachedDMS = []
 let sinceLastLJ = 0;
 
 auto.on("ready", () => {
-    console.log("Started")
+    console.log("Started " + auto.user.tag)
     if (auto.user.bot) throw new Error("Auto DM Advert Checker only works on User Acounts.")
 })
 
