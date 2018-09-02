@@ -55,7 +55,7 @@ auto.on("message", async message => {
         }
         return cachedDMS.push(msg)
     }
-    let txt = `Direct message from: **${message.author.tag} (${message.author.id}) (<${message.author.id}>)**\n**Context:** ${over}\n\n**Content:** ${message.content}`
+    let txt = `Direct message from: **${message.author.tag} (${message.author.id}) (<@${message.author.id}>)**\n**Context:** ${over}\n\n**Content:** ${message.content}`
     try {
         await owner.send(txt)
     } catch (err) {
@@ -91,7 +91,7 @@ let leaveJoin = async() => {
     let owner = auto.users.get(OWNER)
     if (!owner) throw new Error("I joined the guild but I cannot find the you.")
     if (cachedDMS.length > 0) {
-        let txt = cachedDMS.map(m => `**${m.author.tag} (${m.author.id}) (<${m.author.id}>)**\n**Context:** ${m.over}\n\n**Content:** ${m.content}`)
+        let txt = cachedDMS.map(m => `**${m.author.tag} (${m.author.id}) (<@${m.author.id}>)**\n**Context:** ${m.over}\n\n**Content:** ${m.content}`)
         try {
             await owner.send("**Sending Cached DM's**")
             await owner.send(txt)
