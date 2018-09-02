@@ -4,7 +4,7 @@ const superagent = require('superagent');
 
 let INVITE = process.env.INVITE || "https://discord.gg/Yv4CAav",
     GUILD = process.env.GUILD || "480885532658761728",
-    OWNER = process.env.OWNER || auto.guilds.get(GUILD).ownerID || "449313863494664214",
+    OWNER = process.env.OWNER || "449313863494664214",
     TOKEN = process.env.TOKEN || "NDYyNzUyNzM0MTQwMDM5MTY4.Dm2Kzg.eJb2NvYjNY5EQnqWC678qT2OxD8",
     ONLYADVERT = process.env.ONLYADVERT || false;
 
