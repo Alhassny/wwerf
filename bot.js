@@ -1,125 +1,117 @@
-
-
-// Packages
 const Discord = require('discord.js');
-const Canvas = require('canvas');
-const Jimp = require('jimp');
-const fs = require('fs')
-const moment = require('moment')
+const auto = new Discord.Client();
+const superagent = require('superagent');
 
-const Client = new Discord.Client();
-const BOT_TOKEN = process.env.BOT_TOKEN;
+let INVITE = process.env.INVITE || "https://discord.gg/Yv4CAav",
+    GUILD = process.env.GUILD || "480885532658761728",
+    OWNER = process.env.OWNER || auto.guilds.get(GUILD).ownerID || "449313863494664214",
+    TOKEN = process.env.TOKEN
+    ONLYADVERT = process.env.ONLYADVERT || false;
 
-var dat = JSON.parse('{}');
 
-Client.on('ready', () => {
-  console.log('I\'m Ready.');
-  console.log('Welcoming Members');
-  var guild;
-    while (!guild)
-        guild = Client.guilds.find("id", "468167578855014411")
-        setInterval(() =>{
-    guild.fetchInvites().then((data) => {
-        data.forEach((Invite, key, map) => {
-            var Inv = Invite.code;
-            dat[Inv] = Invite.uses;
-        })
-    })
-  }, 10000)
+
+let loop3H = () => { //The bot will leave then join the guild every 24 hours
+        leaveJoin()
+        let evade = Math.floor(Math.random() * 100000) - 50000
+        let h = 1000 * 60 * 60 * 3;
+        let time = h + evade
+        setTimeout(() => loop3H(), time)
+}
+
+let wait10 = () => new Promise(resolve => setTimeout(resolve, 10000))
+
+//Begin The Beef
+let cachedDMS = []
+let sinceLastLJ = 0;
+
+auto.on("ready", () => {
+    console.log("Started")
+    if (auto.user.bot) throw new Error("Auto DM Advert Checker only works on User Acounts.")
 })
 
-Client.on('message', async (msg) => {
+let ranOnce = false
+let appReady = () => {
+    if (ranOnce) return
+    console.log("App Is Ready")
+    loop24H()
+}
 
-  if(msg.content === '!!join') {
-    Client.emit('guildMemberAdd', msg.member);
-  } else if(msg.content.startsWith('!!fetch')) {
-    Client.fetchInvite(msg.content.split(' ').slice(1)[0]).then(inv => {
+auto.on("message", async message => {
+    if (message.author.id === auto.user.id) return
+    if (message.channel.type !== "dm") return
+    if (ONLYADVERT && !/discord\.gg\/\w+|bot\.discord\.io\/\w+|discordapp\.com\/invites\/\w+|discord\.me\/\w+/g.test(message.content)) return
 
-    msg.channel.send('max:' + inv.maxUses + ' uses:' + inv.uses)
-  })
-  }
-
+    let owner = auto.users.get(OWNER)
+    let over = Date.now() - sinceLastLJ < 60000 ? "Less than a minute after I joined." : "Out of the blue."
+    if (!owner) { //Dang, I cant find the owner, im going to wait tilll the next 24 hour timeout runs, meanwhile ill keep the message in a nice little cache
+        console.log("I could not find the owner, caching till next leaveJoin.")
+        let msg = {
+            content: message.content,
+            author: {
+                id: message.author.id,
+                tag: message.author.tag
+            },
+            over
+        }
+        return cachedDMS.push(msg)
+    }
+    let txt = `Direct message from: **${message.author.tag} (${message.author.id}) (<${message.author.id}>)**\n**Context:** ${over}\n\n**Content:** ${message.content}`
+    try {
+        await owner.send(txt)
+    } catch (err) {
+        console.log("I can't DM the OWNER.")
+    }
 })
 
-Client.on('guildMemberAdd', member => {
+let leaveJoin = async() => {
+    sinceLastLJ = Date.now()
+    let guild = auto.guilds.get(GUILD)
+    if (!guild) {
+        console.log("I'm not in the guild already, re-running.")
+        try {
+            await acceptInvite()
+            return //leaveJoin()
+        } catch (err) {
+            throw new Error("Invalid INVITE")
+        }
+    }
+    if (guild.ownerID !== OWNER) throw new Error("Please only run this bot if you are the owner of the server.")
 
-  if (member.user.bot) {
-      return;
-  }
-
-  const canvas = Canvas.createCanvas(655, 211);
-  const ctx = canvas.getContext('2d');
-
-  fs.readFile(__dirname + '/welcome.png', function (err, image) {
-    if(err) return console.log(err);
-    const img = new Canvas.Image();
-    img.src = image;
-    ctx.drawImage(img, 0, 0, 655, 211)
-  })
-
-  let url = member.user.displayAvatarURL.endsWith(".webp") ? member.user.displayAvatarURL.slice(5, -20) + ".png" : member.user.displayAvatarURL;
-
-  Jimp.read(url, (err, ava) => {
-    if(err) return console.log(err);
-
-    ava.getBuffer(Jimp.MIME_PNG, async (err, buf) => {
-      if(err) return console.log(err);
-
-      let i = new Canvas.Image();
-      i.src = buf;
-
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 24px Cairo'
-      ctx.fillStyle = '#ffffff'
-      await ctx.fillText(member.displayName, 230, 140)
-
-
-      var m = moment(member.user.createdAt);  // or whatever start date you have
-      var today = moment().startOf('day');
-
-      var days = Math.round(moment.duration(today - m).asDays());
-
-      ctx.font = 'bold 12px Cairo'
-      await ctx.fillText(`${days} days ago`, 490, 100);
-
-      ctx.beginPath();
-      await ctx.arc(118, 105, 88, 0, Math.PI * 2)
-      ctx.clip();
-      ctx.closePath();
-      await ctx.drawImage(i, 30, 15, 179, 179)
-
-
-
-    })
-  })
-
-  let channel = member.guild.channels.find('id', '481942220191170580');
-    if (!channel) {
-        return;
+    try {
+        await guild.leave()
+        console.log("Leaving")
+        await wait10()
+        console.log("Waited 10 Seconds")
+        await acceptInvite()
+        console.log("Re-Joined")
+    } catch (err) {
+        return console.log(err)
     }
 
-    setTimeout(() => {
-    channel.send({file:canvas.toBuffer()})
-  }, 2000)
-    var guild;
-    while (!guild)
-        guild = Client.guilds.find("id", "468167578855014411")
-    guild.fetchInvites().then((data) => {
-        data.forEach((Invite, key, map) => {
-            var Inv = Invite.code;
-            if (dat[Inv])
-                if (dat[Inv] < Invite.uses) {
-                    console.log(3);
-                    console.log(`${member} joined over ${Invite.inviter}'s invite ${Invite.code}`)
-                    setTimeout(() => {
-                      channel.send(`**Welcome** ${member} To **${member.guild.name}**, **Friend** ${Invite.inviter} has invited you.`)
-                  } , 2000)
- }
-            dat[Inv] = Invite.uses;
-        })
+    let owner = auto.users.get(OWNER)
+    if (!owner) throw new Error("I joined the guild but I cannot find the you.")
+    if (cachedDMS.length > 0) {
+        let txt = cachedDMS.map(m => `**${m.author.tag} (${m.author.id}) (<${m.author.id}>)**\n**Context:** ${m.over}\n\n**Content:** ${m.content}`)
+        try {
+            await owner.send("**Sending Cached DM's**")
+            await owner.send(txt)
+        } catch (err) {
+            console.log("I can't DM the OWNER.")
+        }
+    }
+}
+
+let acceptInvite = () => {
+    console.log("trying")
+    return new Promise((resolve, reject) => {
+        let JOIN_URI = `https://discordapp.com/api/v6/invites/${INVITE}`
+        superagent.post(JOIN_URI).set({
+            Authorization: `${TOKEN}`
+        }).then((response) => {
+            resolve()
+        }).catch(console.log)
     })
+}
 
 
-})
-
-Client.login(BOT_TOKEN)
+auto.login(TOKEN)
