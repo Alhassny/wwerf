@@ -8,7 +8,7 @@ const fs = require('fs')
 const moment = require('moment')
 
 const Client = new Discord.Client();
-const BOT_TOKEN = process.env.TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
 var dat = JSON.parse('{}');
 
